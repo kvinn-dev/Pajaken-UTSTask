@@ -51,7 +51,7 @@ git branch
 Jalankan server PHP di terminal:
 
 ```bash
-php -S localhost:8000
+php -S localhost:8000 index.php
 ```
 
 Buka browser:
