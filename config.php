@@ -49,18 +49,23 @@ function getUserFromDB($userId = 1) {
     return $user ?: null;
 }
 
+// Proteksi Halaman (Redirect jika belum login)
+$currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+$isAuthPage = in_array(str_replace('.php', '', $currentUri), ['/login', '/register', '/logout']);
+
 // Initialize user data in session if not exists
 if (!isset($_SESSION['user_data'])) {
-    $dbUser = getUserFromDB(1); // Ambil user ID 1
-    if ($dbUser) {
-        $_SESSION['user_data'] = $dbUser;
-    } else {
-        $_SESSION['user_data'] = $defaultUserData;
+    if (!$isAuthPage) {
+        header('Location: /login');
+        exit;
     }
+} elseif ($isAuthPage && $currentUri !== '/logout') {
+    header('Location: /');
+    exit;
 }
 
 // Global variable for easy access
-$userData = $_SESSION['user_data'];
+$userData = $_SESSION['user_data'] ?? $defaultUserData;
 
 // ==========================================
 // VEHICLES DATA (dari database)
@@ -128,6 +133,24 @@ function getRemindersFromDB($userId = 1) {
     $conn->close();
     
     return $reminders ?: [];
+}
+
+/**
+ * Simpan atau perbarui pengingat kendaraan di database
+ * @param int $userId
+ * @param int $vehicleId
+ * @param string $tanggal
+ * @param string $reminderType
+ * @return bool
+ */
+function saveReminder($userId, $vehicleId, $tanggal, $reminderType) {
+    $conn = getDB();
+    $stmt = $conn->prepare("INSERT INTO reminders (user_id, vehicle_id, tanggal, reminder_type, is_active) VALUES (?, ?, ?, ?, 1) ON DUPLICATE KEY UPDATE tanggal = ?, reminder_type = ?, is_active = 1");
+    $stmt->bind_param("iissss", $userId, $vehicleId, $tanggal, $reminderType, $tanggal, $reminderType);
+    $result = $stmt->execute();
+    $stmt->close();
+    $conn->close();
+    return $result;
 }
 
 // ==========================================
@@ -198,11 +221,20 @@ function getTotalKendaraan($userId = 1) {
     return $total;
 }
 
-// Ambil data dari database
-$vehicles = getVehiclesFromDB(1);
-$reminders = getRemindersFromDB(1);
-$allNotifications = getNotificationsFromDB(1, 5);
-$unreadCount = getUnreadNotificationCount(1);
+// Ambil data dari database murni berdasarkan ID User yang login
+$currentUserId = $userData['id'] ?? 0;
+
+if ($currentUserId > 0) {
+    $vehicles = getVehiclesFromDB($currentUserId);
+    $reminders = getRemindersFromDB($currentUserId);
+    $allNotifications = getNotificationsFromDB($currentUserId, 5);
+    $unreadCount = getUnreadNotificationCount($currentUserId);
+} else {
+    $vehicles = [];
+    $reminders = [];
+    $allNotifications = [];
+    $unreadCount = 0;
+}
 
 // ==========================================
 // HELPER FUNCTIONS

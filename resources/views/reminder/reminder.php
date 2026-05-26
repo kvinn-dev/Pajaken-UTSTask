@@ -16,22 +16,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     if (empty($reminder_type)) $errors[] = 'Pilih jenis pengingat.';
 
     if (empty($errors)) {
-        // Here you would insert into database
-        // For now, just add to sample data
-        $newReminder = [
-            'id' => count($reminders) + 1,
-            'vehicle_id' => (int)$vehicle_id,
-            'tanggal' => $tanggal,
-            'reminder_type' => $reminder_type,
-            'vehicle' => array_filter($vehicles, function ($v) use ($vehicle_id) {
-                return $v['id'] == $vehicle_id;
-            })[0] ?? null
-        ];
-        $reminders[] = $newReminder;
+        // Simpan ke database menggunakan fungsi dari config.php
+        $userId = $_SESSION['user_data']['id'] ?? 1;
+        saveReminder($userId, (int)$vehicle_id, $tanggal, $reminder_type);
+
         $_SESSION['success'] = 'Pengingat berhasil disimpan!';
 
         // Redirect to prevent form resubmission
-        header('Location: reminder.php');
+        header('Location: /reminder');
         exit;
     } else {
         $_SESSION['errors'] = $errors;
@@ -133,7 +125,7 @@ include 'includes/header.php';
                     </div>
 
                     <!-- Form -->
-                    <form id="reminderForm" action="reminder.php" method="POST">
+                    <form id="reminderForm" action="/reminder" method="POST">
                         <input type="hidden" name="action" value="add_reminder">
 
                         <!-- Vehicle Selection -->
@@ -709,7 +701,7 @@ include 'includes/header.php';
                     statusSpan.textContent = isOverdue ? 'Jatuh Tempo' : 'Aktif';
                     statusSpan.style.color = isOverdue ? '#ef4444' : '#10b981';
 
-                    document.getElementById('modalBayarBtn').href = `/pembayaran/${vehicle.id}`;
+                    document.getElementById('modalBayarBtn').href = `/payment`;
                     eventDetailModal.style.display = 'flex';
                 }
             }

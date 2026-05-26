@@ -7,7 +7,6 @@ include 'includes/header.php';
 <html lang="id">
 <head>
   <title>Daftar Kendaraan</title>
-  <link rel="stylesheet" href="style2.css">
 </head>
 <body>
 
@@ -27,7 +26,7 @@ include 'includes/header.php';
   <!-- Card kendaraan -->
   <div class="card">
     <div class="card-header">
-      <img src="assets/motor.webp">
+      <img src="public/assets/motor.webp">
       <div>
         <b>F 5919 NH</b><br>
         Jatuh Tempo: 27 Mar 2024
@@ -85,7 +84,7 @@ include 'includes/header.php';
     // tombol bayar
     const btnBayar = document.querySelector(".card-footer button");
     btnBayar.addEventListener("click", function () {
-      window.location.href = "payment.php";
+      window.location.href = "/payment";
     });
   </script>
 </body>
