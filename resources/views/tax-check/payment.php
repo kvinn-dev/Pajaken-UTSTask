@@ -22,7 +22,7 @@ include 'includes/header.php';
     <div class="payment-card">
 
         <div class="payment-header">
-            <img src="assets/motor.webp" alt="motor">
+            <img src="public/assets/motor.webp" alt="motor">
             <div>
                 <b>F 5919 NH</b><br>
                 Jatuh Tempo: 27 Mar 2024

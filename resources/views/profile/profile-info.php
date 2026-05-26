@@ -2,7 +2,7 @@
 // profile-info.php
 require_once 'config.php';
 $pageTitle = 'Pengaturan Profil';
-include 'includes/header-plain.php';
+include './includes/header-plain.php';
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'update_profile') {
         // Update profile data ke database
         $stmt = $conn->prepare("UPDATE users SET first_name = ?, last_name = ?, email = ?, phone = ? WHERE id = ?");
-        $userId = 1; // Ganti dengan session user ID
+        $userId = $_SESSION['user_data']['id'] ?? 1; // Sinkronisasi dengan session
         $stmt->bind_param(
             "ssssi",
             $_POST['first_name'],
@@ -22,25 +22,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $userId
         );
 
-        if ($stmt->execute()) {
-            // Update session
-            $_SESSION['user_data']['first_name'] = $_POST['first_name'];
-            $_SESSION['user_data']['last_name'] = $_POST['last_name'];
-            $_SESSION['user_data']['email'] = $_POST['email'];
-            $_SESSION['user_data']['phone'] = $_POST['phone'];
+        try {
+            if ($stmt->execute()) {
+                // Update session
+                $_SESSION['user_data']['first_name'] = $_POST['first_name'];
+                $_SESSION['user_data']['last_name'] = $_POST['last_name'];
+                $_SESSION['user_data']['email'] = $_POST['email'];
+                $_SESSION['user_data']['phone'] = $_POST['phone'];
 
-            $_SESSION['success'] = 'Profil berhasil diperbarui!';
-        } else {
-            $_SESSION['error'] = 'Gagal memperbarui profil!';
+                $_SESSION['success'] = 'Profil berhasil diperbarui!';
+            } else {
+                $_SESSION['error'] = 'Gagal memperbarui profil!';
+            }
+        } catch (mysqli_sql_exception $e) {
+            if ($e->getCode() == 1062) { // Kode error MySQL untuk Duplicate Entry
+                $_SESSION['error'] = 'Email tersebut sudah digunakan. Silakan gunakan email yang lain!';
+            } else {
+                $_SESSION['error'] = 'Terjadi kesalahan sistem saat memperbarui profil.';
+            }
         }
 
         $stmt->close();
-        header('Location: profile-info.php');
+        header('Location: /profile-info');
         exit;
     }
 
     if ($action === 'update_address') {
-        $userId = 1;
+        $userId = $_SESSION['user_data']['id'] ?? 1;
         // Cek apakah sudah ada alamat
         $check = $conn->query("SELECT id FROM alamat WHERE user_id = $userId");
 
@@ -84,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $stmt->close();
-        header('Location: profile-info.php');
+        header('Location: /profile-info');
         exit;
     }
 
@@ -97,7 +105,7 @@ unset($_SESSION['success'], $_SESSION['error']);
 
 // Ambil data user dari database untuk ditampilkan
 $conn = getDB();
-$userId = 3;
+$userId = $_SESSION['user_data']['id'] ?? 1;
 $stmt = $conn->prepare("
     SELECT u.*, 
            a.province, 
@@ -152,7 +160,7 @@ if (!$userData) {
     <!-- Avatar -->
     <div class="absolute -bottom-20 left-10">
         <div class="avatar-wrapper" onclick="document.getElementById('avatarUpload').click()">
-            <img src="assets/profile.svg" alt="profile" class="w-full h-full object-cover" />
+            <img src="public/assets/profile.svg" alt="profile" class="w-full h-full object-cover" />
             <div class="avatar-upload-overlay">
                 <svg width="32" height="32" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"></path>
@@ -178,7 +186,11 @@ if (!$userData) {
                 <circle cx="12" cy="10" r="3"></circle>
             </svg>
             <p class="text-gray-500">
-                Kab. <?php echo htmlspecialchars($userData['city']); ?>, <?php echo htmlspecialchars($userData['province']); ?>
+            <?php if (!empty($userData['city']) || !empty($userData['province'])): ?>
+                Kab. <?php echo htmlspecialchars($userData['city'] ?? ''); ?>, <?php echo htmlspecialchars($userData['province'] ?? ''); ?>
+            <?php else: ?>
+                Alamat belum ditambahkan
+            <?php endif; ?>
             </p>
         </div>
 
@@ -192,6 +204,11 @@ if (!$userData) {
             <a href="profile-setting.php" class="bg-white border-2 border-primary text-primary px-6 py-2.5 rounded-full text-sm font-medium hover:bg-primary-light transition-all active:scale-95">
                 <span class="flex items-center gap-2">
                     Pengaturan
+                </span>
+            </a>
+            <a href="/logout" class="bg-red-50 border-2 border-red-100 text-red-600 px-6 py-2.5 rounded-full text-sm font-medium hover:bg-red-100 transition-all active:scale-95">
+                <span class="flex items-center gap-2">
+                    Logout
                 </span>
             </a>
         </div>
@@ -321,13 +338,15 @@ if (!$userData) {
                         <label class="block text-sm font-medium text-gray-600 mb-2">
                             Provinsi <span class="text-red-400">*</span>
                         </label>
-                        <input
-                            type="text"
-                            name="province"
-                            value="<?php echo htmlspecialchars($userData['province']); ?>"
-                            class="profile-input"
-                            disabled
-                            required />
+                        <select name="province" class="profile-select" disabled required>
+                            <option value="">Pilih Provinsi</option>
+                            <?php if(!empty($userData['province'])): ?>
+                            <option value="<?php echo htmlspecialchars($userData['province'] ?? ''); ?>" selected><?php echo htmlspecialchars($userData['province'] ?? ''); ?></option>
+                            <?php endif; ?>
+                            <option value="DKI Jakarta">DKI Jakarta</option>
+                            <option value="Jawa Barat">Jawa Barat</option>
+                            <option value="Banten">Banten</option>
+                        </select>
                     </div>
 
                     <div>
@@ -336,7 +355,12 @@ if (!$userData) {
                         </label>
                         <select name="city" class="profile-select" disabled required>
                             <option value="">Pilih Kab/Kota</option>
-                            "<?php echo htmlspecialchars($userData['city']); ?>"
+                            <?php if(!empty($userData['city'])): ?>
+                            <option value="<?php echo htmlspecialchars($userData['city'] ?? ''); ?>" selected><?php echo htmlspecialchars($userData['city'] ?? ''); ?></option>
+                            <?php endif; ?>
+                            <option value="Jakarta Selatan">Jakarta Selatan</option>
+                            <option value="Jakarta Pusat">Jakarta Pusat</option>
+                            <option value="Bandung">Bandung</option>
                         </select>
                     </div>
 
@@ -346,7 +370,12 @@ if (!$userData) {
                         </label>
                         <select name="district" class="profile-select" disabled required>
                             <option value="">Pilih Kecamatan</option>
-                            "<?php echo htmlspecialchars($userData['district'] ?? ''); ?>"
+                            <?php if(!empty($userData['district'])): ?>
+                            <option value="<?php echo htmlspecialchars($userData['district'] ?? ''); ?>" selected><?php echo htmlspecialchars($userData['district'] ?? ''); ?></option>
+                            <?php endif; ?>
+                            <option value="Kebayoran Baru">Kebayoran Baru</option>
+                            <option value="Tebet">Tebet</option>
+                            <option value="Coblong">Coblong</option>
                         </select>
                     </div>
 
@@ -356,7 +385,12 @@ if (!$userData) {
                         </label>
                         <select name="village" class="profile-select" disabled required>
                             <option value="">Pilih Kelurahan</option>
-                            "<?php echo htmlspecialchars($userData['village'] ?? ''); ?>"
+                            <?php if(!empty($userData['village'])): ?>
+                            <option value="<?php echo htmlspecialchars($userData['village'] ?? ''); ?>" selected><?php echo htmlspecialchars($userData['village'] ?? ''); ?></option>
+                            <?php endif; ?>
+                            <option value="Senayan">Senayan</option>
+                            <option value="Melawai">Melawai</option>
+                            <option value="Dago">Dago</option>
                         </select>
                     </div>
 
@@ -367,7 +401,7 @@ if (!$userData) {
                             rows="3"
                             placeholder="cth: Jl. Angsana No. 123, RT 01/RW 02"
                             class="profile-input resize-none"
-                            disabled><?php echo htmlspecialchars($userData['address_detail']); ?></textarea>
+                        disabled><?php echo htmlspecialchars($userData['address_detail'] ?? ''); ?></textarea>
                     </div>
                 </div>
 
@@ -388,10 +422,12 @@ if (!$userData) {
     // Handle back button
     function handleBack(e) {
         e.preventDefault();
-        if (window.history.length > 1 && document.referrer) {
+        if (document.referrer && document.referrer.includes('/profile-info')) {
+            window.location.href = '/';
+        } else if (window.history.length > 1 && document.referrer) {
             window.history.back();
         } else {
-            window.location.href = 'homepage.php';
+            window.location.href = '/';
         }
     }
 

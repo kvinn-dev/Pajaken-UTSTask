@@ -168,7 +168,7 @@ include 'includes/header.php';
             </div>
         <?php endif; ?>
 
-        <form id="formKendaraan" action="save-vehicles.php" method="POST">
+        <form id="formKendaraan" action="/save-vehicles" method="POST">
 
             <!-- Plat Nomor -->
             <div class="av-form-group full">
@@ -259,7 +259,7 @@ include 'includes/header.php';
     if (btnCancel) {
         btnCancel.addEventListener('click', function() {
             if (confirm("Yakin ingin batal?")) {
-                window.location.href = "homepage.php";
+                window.location.href = "/";
             }
         });
     }

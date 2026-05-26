@@ -80,13 +80,13 @@ include 'includes/header.php';
 
             let plat = document.getElementById("plat").value.trim();
 
-            // ❌ kosong
+            // kosong
             if (plat === "") {
                 alert("Plat nomor belum diisi!");
                 return;
             }
 
-            // ❌ harus ada 2 spasi
+            // harus ada 2 spasi
             const jumlahSpasi = (plat.match(/ /g) || []).length;
 
             if (jumlahSpasi !== 2) {
@@ -94,13 +94,13 @@ include 'includes/header.php';
                 return;
             }
 
-            // ❌ tidak boleh hanya angka
+            // tidak boleh hanya angka
             if (/^[0-9 ]+$/.test(plat)) {
                 alert("Plat nomor tidak boleh hanya angka!");
                 return;
             }
 
-            // ❌ format salah
+            // format salah
             const regex = /^[A-Za-z]{1,2} [0-9]{1,4} [A-Za-z]{1,3}$/;
 
             if (!regex.test(plat)) {
@@ -108,7 +108,7 @@ include 'includes/header.php';
                 return;
             }
 
-            // ✅ uppercase
+            // uppercase
             plat = plat.toUpperCase();
 
             // cek database

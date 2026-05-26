@@ -1,11 +1,22 @@
 <?php
 // homepage.php
+require_once 'config.php';
 $pageTitle = 'Beranda';
 include 'includes/header.php';
 
-// Data dummy
-$totalKendaraan = 3;
-$pajakJatuhTempo = 1;
+// Ambil data dinamis sesuai user yang login
+$currentUserId = $_SESSION['user_data']['id'] ?? 0;
+$totalKendaraan = getTotalKendaraan($currentUserId);
+
+$pajakJatuhTempo = 0;
+$today = time();
+foreach ($vehicles as $v) {
+    $taxDate = strtotime($v['tanggal_pajak']);
+    // Hitung sebagai jatuh tempo jika pajaknya sudah lewat atau H-30
+    if ($taxDate - $today <= (30 * 86400)) {
+        $pajakJatuhTempo++;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -42,7 +53,7 @@ $pajakJatuhTempo = 1;
         <a href="add-vehicle.php" class="card-link">
             <div class="card big">
                 <div class="card-header-hp">
-                    <img src="assets/plus.png" alt="Tambahkan">
+                    <img src="public/assets/plus.png" alt="Tambahkan">
                     <h2>Tambahkan</h2>
                 </div>
                 <p>
@@ -55,7 +66,7 @@ $pajakJatuhTempo = 1;
         <a href="vehicle-list.php" class="card-link">
             <div class="card big">
                 <div class="card-header-hp">
-                    <img src="assets/Kaca.png" alt="Cek Kendaraan">
+                    <img src="public/assets/Kaca.png" alt="Cek Kendaraan">
                     <h2>Cek Kendaraan</h2>
                 </div>
                 <p>

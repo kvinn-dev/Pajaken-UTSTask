@@ -4,7 +4,12 @@ if (!isset($pageTitle)) {
 }
 
 // Deteksi halaman aktif
-$currentPage = basename($_SERVER['PHP_SELF']);
+$currentPage = basename(parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+if ($currentPage === '' || $currentPage === 'index.php') {
+    $currentPage = 'homepage.php';
+} elseif (strpos($currentPage, '.php') === false) {
+    $currentPage .= '.php';
+}
 ?>
 <!doctype html>
 <html lang="id">
@@ -14,7 +19,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title><?php echo $pageTitle; ?> - Pajaken</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="/resources/css/global.css">
     <script>
         tailwind.config = {
             theme: {
@@ -36,21 +41,21 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <header class="fixed top-0 left-0 right-0 z-40 backdrop-blur-sm">
         <div class="mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-4">
-                <a href="homepage.php" class="flex-shrink-0">
-                    <img src="assets/logo-pajaken.svg" alt="Logo Pajaken" class="h-10" />
+                <a href="/" class="flex-shrink-0">
+                    <img src="/public/assets/logo-pajaken.svg" alt="Logo Pajaken" class="h-10" />
                 </a>
 
                 <!-- Desktop Navigation -->
                 <nav class="hidden md:flex bg-white rounded-full p-1.5 shadow-sm border border-gray-100">
-                    <a href="homepage.php"
+                    <a href="/"
                         class="px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200 <?php echo $currentPage == 'homepage.php' ? 'bg-primary text-white shadow-md' : 'text-gray-600 hover:text-primary hover:bg-primary-light/30'; ?>">
                         Beranda
                     </a>
-                    <a href="tax-check.php"
+                    <a href="/tax-check"
                         class="px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200 <?php echo $currentPage == 'tax-check.php' ? 'bg-primary text-white shadow-md' : 'text-gray-600 hover:text-primary hover:bg-primary-light/30'; ?>">
                         Cek Pajak
                     </a>
-                    <a href="reminder.php"
+                    <a href="/reminder"
                         class="px-6 py-2.5 rounded-full text-sm font-medium transition-all duration-200 <?php echo $currentPage == 'reminder.php' ? 'bg-primary text-white shadow-md' : 'text-gray-600 hover:text-primary hover:bg-primary-light/30'; ?>">
                         Pengingat
                     </a>
@@ -74,7 +79,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <svg width="24" height="24" fill="none" stroke="#6200ff" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9zm-6 13a3 3 0 01-3-3h6a3 3 0 01-3 3z"></path>
                             </svg>
-                            <div class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full"></div>
+                            <?php if (isset($unreadCount) && $unreadCount > 0): ?>
+                                <div class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full"></div>
+                            <?php endif; ?>
                         </div>
 
                         <!-- Notification Dropdown -->
@@ -88,47 +95,21 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <!-- Body -->
                             <div class="dropdown-body">
                                 <?php
-                                $notifications = [
-                                    [
-                                        'id' => 1,
-                                        'type' => 'jatuh_tempo',
-                                        'title' => 'Pajak Motor Jatuh Tempo',
-                                        'message' => 'Pajak motor B 1234 ABC akan jatuh tempo pada 21 April 2026.',
-                                        'time' => '2 hari yang lalu',
-                                        'read' => false
-                                    ],
-                                    [
-                                        'id' => 2,
-                                        'type' => 'info',
-                                        'title' => 'Pengingat Aktif',
-                                        'message' => 'Pengingat 7 hari sebelum pajak motor B 1234 ABC jatuh tempo.',
-                                        'time' => '3 hari yang lalu',
-                                        'read' => false
-                                    ],
-                                    [
-                                        'id' => 3,
-                                        'type' => 'selesai',
-                                        'title' => 'Pembayaran Berhasil',
-                                        'message' => 'Pembayaran pajak untuk kendaraan DK 4567 BCD telah berhasil.',
-                                        'time' => '5 hari yang lalu',
-                                        'read' => true
-                                    ]
-                                ];
-
-                                if (!empty($notifications)):
-                                    foreach ($notifications as $notif):
+                                if (!empty($allNotifications)):
+                                    foreach ($allNotifications as $notif):
                                         $iconColors = [
                                             'info' => '#3b82f6',
                                             'maintenance' => '#f59e0b',
                                             'event' => '#8b5cf6',
                                             'promo' => '#10b981',
-                                            'jatuh_tempo' => '#ef4444',
+                                            'jatuh_tempo' => '#f59e0b',
                                             'selesai' => '#10b981',
-                                            'masalah' => '#f97316'
+                                            'masalah' => '#ef4444'
                                         ];
                                         $iconBg = $iconColors[$notif['type']] ?? '#6b7280';
+                                        $isRead = !empty($notif['read_at']);
                                 ?>
-                                        <div class="dropdown-notif-item <?php echo !$notif['read'] ? 'unread' : ''; ?>">
+                                        <div class="dropdown-notif-item <?php echo !$isRead ? 'unread' : ''; ?>">
                                             <div class="dropdown-notif-icon" style="background: <?php echo $iconBg; ?>;">
                                                 <?php if ($notif['type'] === 'jatuh_tempo'): ?>
                                                     <svg width="16" height="16" fill="none" stroke="white" stroke-width="2" viewBox="0 0 24 24">
@@ -150,9 +131,9 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                             <div class="dropdown-notif-content">
                                                 <p class="dropdown-notif-title"><?php echo htmlspecialchars($notif['title']); ?></p>
                                                 <p class="dropdown-notif-desc"><?php echo htmlspecialchars($notif['message']); ?></p>
-                                                <span class="dropdown-notif-time"><?php echo htmlspecialchars($notif['time']); ?></span>
+                                                <span class="dropdown-notif-time"><?php echo diffForHumans($notif['created_at']); ?></span>
                                             </div>
-                                            <?php if (!$notif['read']): ?>
+                                            <?php if (!$isRead): ?>
                                                 <div class="dropdown-notif-dot"></div>
                                             <?php endif; ?>
                                         </div>
@@ -166,14 +147,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                 <?php endif; ?>
                             </div>
 
-                            <a href="notification.php" class="dropdown-view-all">Lihat Semua Notifikasi</a>
+                        <a href="/notification" class="dropdown-view-all">Lihat Semua Notifikasi</a>
                         </div>
                     </div>
 
                     <!-- Avatar -->
-                    <a href="profile-info.php">
+                <a href="/profile-info">
                         <div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary hover:border-primary-dark transition-colors">
-                            <img src="assets/profile.svg" alt="profile" class="w-full h-full object-cover" />
+                        <img src="/public/assets/profile.svg" alt="profile" class="w-full h-full object-cover" />
                         </div>
                     </a>
                 </div>
@@ -182,26 +163,26 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <!-- Mobile Menu -->
             <div id="mobileMenu" class="hidden md:hidden pb-4 border-t border-gray-100 mt-3 pt-3">
                 <nav class="flex flex-col gap-2">
-                    <a href="homepage.php"
+                <a href="/"
                         class="px-4 py-3 rounded-lg text-sm font-medium transition-all <?php echo $currentPage == 'homepage.php' ? 'bg-primary text-white' : 'text-gray-600 hover:bg-primary-light'; ?>">
                         Beranda
                     </a>
-                    <a href="tax-check.php"
+                <a href="/tax-check"
                         class="px-4 py-3 rounded-lg text-sm font-medium transition-all <?php echo $currentPage == 'tax-check.php' ? 'bg-primary text-white' : 'text-gray-600 hover:bg-primary-light'; ?>">
                         Cek Pajak
                     </a>
-                    <a href="reminder.php"
+                <a href="/reminder"
                         class="px-4 py-3 rounded-lg text-sm font-medium transition-all <?php echo $currentPage == 'reminder.php' ? 'bg-primary text-white' : 'text-gray-600 hover:bg-primary-light'; ?>">
                         Pengingat
                     </a>
                     <div class="border-t border-gray-100 pt-2 mt-2">
-                        <a href="notification.php" class="px-4 py-3 rounded-lg text-sm font-medium text-gray-600 hover:bg-primary-light flex items-center gap-3">
+                    <a href="/notification" class="px-4 py-3 rounded-lg text-sm font-medium text-gray-600 hover:bg-primary-light flex items-center gap-3">
                             <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9zm-6 13a3 3 0 01-3-3h6a3 3 0 01-3 3z"></path>
                             </svg>
                             Notifikasi
                         </a>
-                        <a href="profile-info.php" class="px-4 py-3 rounded-lg text-sm font-medium text-gray-600 hover:bg-primary-light flex items-center gap-3">
+                    <a href="/profile-info" class="px-4 py-3 rounded-lg text-sm font-medium text-gray-600 hover:bg-primary-light flex items-center gap-3">
                             <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"></path>
                                 <circle cx="12" cy="7" r="4"></circle>

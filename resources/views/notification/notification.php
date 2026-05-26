@@ -4,80 +4,46 @@ require_once 'config.php';
 $pageTitle = 'Notifikasi';
 include 'includes/header-plain.php';
 
-// Sample notifications data (ganti dengan database query nanti)
-$notifications = [
-    [
-        'id' => 1,
-        'type' => 'jatuh_tempo',
-        'type_label' => 'Jatuh Tempo',
-        'type_color' => 'orange',
-        'type_bg' => '#f59e0b',
-        'title' => 'Pajak Motor B 1234 ABC Jatuh Tempo',
-        'message' => 'Pajak kendaraan motor Anda dengan nomor polisi B 1234 ABC akan jatuh tempo pada tanggal 21 April 2026. Segera lakukan pembayaran untuk menghindari denda.',
-        'read_at' => null,
-        'created_at' => '2026-04-18 10:30:00',
-        'action_url' => 'reminder.php',
-        'action_text' => 'Atur Pengingat'
-    ],
-    [
-        'id' => 2,
-        'type' => 'selesai',
-        'type_label' => 'Selesai',
-        'type_color' => 'green',
-        'type_bg' => '#10b981',
-        'title' => 'Pembayaran Pajak Berhasil',
-        'message' => 'Pembayaran pajak untuk kendaraan DK 4567 BCD telah berhasil diproses. Bukti pembayaran telah dikirim ke email Anda.',
-        'read_at' => '2026-04-15 14:20:00',
-        'created_at' => '2026-04-15 14:20:00',
-        'action_url' => '#',
-        'action_text' => 'Lihat Bukti'
-    ],
-    [
-        'id' => 3,
-        'type' => 'masalah',
-        'type_label' => 'Masalah',
-        'type_color' => 'red',
-        'type_bg' => '#ef4444',
-        'title' => 'Gagal Memproses Pembayaran',
-        'message' => 'Pembayaran pajak untuk kendaraan B 7890 XYZ gagal diproses. Silakan coba lagi atau hubungi customer service.',
-        'read_at' => null,
-        'created_at' => '2026-04-12 09:15:00',
-        'action_url' => 'tax-check.php',
-        'action_text' => 'Coba Lagi'
-    ],
-    [
-        'id' => 4,
-        'type' => 'info',
-        'type_label' => 'Info',
-        'type_color' => 'blue',
-        'type_bg' => '#3b82f6',
-        'title' => 'Pengingat 7 Hari Sebelum Jatuh Tempo',
-        'message' => 'Pengingat untuk pembayaran pajak kendaraan B 1234 ABC dalam 7 hari ke depan telah diaktifkan.',
-        'read_at' => '2026-04-10 08:00:00',
-        'created_at' => '2026-04-10 08:00:00',
-        'action_url' => 'reminder.php',
-        'action_text' => 'Kelola Pengingat'
-    ],
-    [
-        'id' => 5,
-        'type' => 'info',
-        'type_label' => 'Info',
-        'type_color' => 'blue',
-        'type_bg' => '#3b82f6',
-        'title' => 'Info Perubahan Tarif Pajak',
-        'message' => 'Mulai Mei 2026, terdapat penyesuaian tarif pajak kendaraan bermotor. Cek informasi selengkapnya.',
-        'read_at' => null,
-        'created_at' => '2026-04-05 11:45:00',
-        'action_url' => '#',
-        'action_text' => 'Baca Selengkapnya'
-    ]
-];
+// Ambil notifikasi dari database sesuai user yang login
+$currentUserId = $_SESSION['user_data']['id'] ?? 0;
+$notificationsRaw = getNotificationsFromDB($currentUserId, 50);
+
+$notifications = [];
+foreach ($notificationsRaw as $notif) {
+    // Default mapping tampilan jika kolom type_label dkk belum ditambahkan di DB
+    $type = $notif['type'] ?? 'info';
+    $typeLabel = 'Info';
+    $typeColor = 'blue';
+    $typeBg = '#3b82f6';
+    
+    if ($type === 'jatuh_tempo') {
+        $typeLabel = 'Jatuh Tempo'; $typeColor = 'orange'; $typeBg = '#f59e0b';
+    } elseif ($type === 'selesai') {
+        $typeLabel = 'Selesai'; $typeColor = 'green'; $typeBg = '#10b981';
+    } elseif ($type === 'masalah') {
+        $typeLabel = 'Masalah'; $typeColor = 'red'; $typeBg = '#ef4444';
+    }
+    
+    $notif['type_label'] = $notif['type_label'] ?? $typeLabel;
+    $notif['type_color'] = $notif['type_color'] ?? $typeColor;
+    $notif['type_bg'] = $notif['type_bg'] ?? $typeBg;
+    $notif['action_url'] = $notif['action_url'] ?? '';
+    $notif['action_text'] = $notif['action_text'] ?? '';
+    
+    $notifications[] = $notif;
+}
 
 // Tandai semua dibaca (via POST)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_all_read'])) {
-    // Di sini update database
+    $conn = getDB();
+    $stmt = $conn->prepare("UPDATE notifications SET read_at = CURRENT_TIMESTAMP WHERE user_id = ? AND read_at IS NULL");
+    $stmt->bind_param("i", $currentUserId);
+    $stmt->execute();
+    $stmt->close();
+    $conn->close();
+
     $_SESSION['success'] = 'Semua notifikasi telah ditandai sudah dibaca';
-    header('Location: notification.php');
+    header('Location: /notification');
     exit;
 }
 ?>
@@ -89,9 +55,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_all_read'])) {
         Kembali
     </a>
     <div class="nav-right">
-        <a href="profile-info.php">
+        <a href="/profile-info">
             <div class="nav-avatar">
-                <img src="assets/profile.svg" alt="profile" />
+                <img src="/public/assets/profile.svg" alt="profile" />
             </div>
         </a>
     </div>
@@ -177,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_all_read'])) {
     </div>
 
     <aside class="notif-sidebar">
-        <a href="tax-check.php" class="btn-sidebar-primary">Cek Pajak Baru</a>
+        <a href="/tax-check" class="btn-sidebar-primary">Cek Pajak Baru</a>
 
         <ul class="sidebar-menu">
             <li>
@@ -245,7 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['mark_all_read'])) {
         if (window.history.length > 1 && document.referrer) {
             window.history.back();
         } else {
-            window.location.href = 'homepage.php';
+            window.location.href = '/';
         }
     }
 </script>
