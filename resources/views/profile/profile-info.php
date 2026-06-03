@@ -201,11 +201,6 @@ if (!$userData) {
                     Edit Profil
                 </span>
             </button>
-            <a href="profile-setting.php" class="bg-white border-2 border-primary text-primary px-6 py-2.5 rounded-full text-sm font-medium hover:bg-primary-light transition-all active:scale-95">
-                <span class="flex items-center gap-2">
-                    Pengaturan
-                </span>
-            </a>
             <a href="/logout" class="bg-red-50 border-2 border-red-100 text-red-600 px-6 py-2.5 rounded-full text-sm font-medium hover:bg-red-100 transition-all active:scale-95">
                 <span class="flex items-center gap-2">
                     Logout

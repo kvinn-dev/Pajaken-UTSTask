@@ -51,11 +51,11 @@ include 'includes/header-plain.php';
 <div class="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50">
     <div class="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <img class="mx-auto h-12 w-auto" src="/public/assets/logo-pajaken.svg" alt="Pajaken">
-        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">Buat Akun Baru</h2>
     </div>
 
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10 border border-gray-100">
+            <h2 class="mt-2 mb-6 text-center text-xl font-semibold text-gray-900">Buat Akun Baru</h2>
             <?php if ($error): ?>
                 <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm"><?php echo htmlspecialchars($error); ?></div>
             <?php endif; ?>
